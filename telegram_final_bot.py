@@ -13,8 +13,6 @@ CHANNEL_ID = os.getenv("CHANNEL_ID", "-1002864117186")  # Your channel ID with f
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is required")
 
-PORT = int(os.environ.get('PORT', 8000))  # Railway/Render provides PORT
-
 # Define starting message IDs and chapter counts
 BOOK_START_IDS = {
     1: 208,   # Replace with actual ID for Philosopher's Stone
@@ -52,7 +50,7 @@ deletion_tasks = {}
 
 # Set up logging with better formatting for production
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -314,10 +312,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
     logger.error(f"Update {update} caused error {context.error}")
 
-async def health_check():
-    """Simple health check endpoint for hosting platforms."""
-    return "Bot is running!"
-
 def main():
     """Run the bot."""
     try:
@@ -336,30 +330,17 @@ def main():
         application.add_handler(CallbackQueryHandler(button_callback))
         application.add_error_handler(error_handler)
 
-        logger.info("Starting Enchanted Library bot with enhanced navigation...")
+        logger.info("Starting Enchanted Library bot...")
+        
+        # Use polling mode for simplicity and reliability
+        application.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
 
-        # Use webhook for Railway/Render (more reliable than polling)
-        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER"):
-            # Use webhook mode for production
-            import uvicorn
-            from fastapi import FastAPI
-
-            app = FastAPI()
-
-            @app.get("/health")
-            async def health():
-                return {"status": "healthy", "bot": "running"}
-
-            # Run bot with webhook in production
-            application.run_webhook(
-                listen="0.0.0.0",
-                port=PORT,
-                webhook_url=f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN', os.getenv('RENDER_EXTERNAL_HOSTNAME'))}/webhook",
-                drop_pending_updates=True
-            )
-        else:
-            # Use polling for local development
-            application.run_polling(drop_pending_updates=True)
+    except Exception as e:
+        logger.error(f"Failed to start bot: {e}")
+        raise
 
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
